@@ -29,8 +29,8 @@ if not os.path.exists("sensor_buffer.db"):
 
 # set initial sensor values instead of randomly assigning them
 # we can then simulate changes over time more realistically
-pm25 = random.uniform(80, 190)
-pm10 = random.uniform(120, 220)
+pm25 = random.uniform(30, 70)
+pm10 = random.uniform(60, 140)
 temperature = random.uniform(15, 25)
 humidity = random.uniform(40, 70)
 
@@ -55,12 +55,12 @@ def generate_sensor_data():
 
     # we can simulate a pollution spike randomly (small probability)
     if random.random() < 0.08:
-        pm25 += random.randint(40, 120)
-        pm10 += random.randint(100, 250)
+        pm25 += random.randint(10, 25)
+        pm10 += random.randint(20, 80)
 
     # spike bhayepachi decay garaudai lyaune
-    PM25_BASELINE = 140
-    PM10_BASELINE = 250
+    PM25_BASELINE = 80
+    PM10_BASELINE = 150
     DECAY_RATE = 0.05
     # baseline value tira ghataudai tara 5% difference each time
     # without 5%, siddhai baseline value tira janchha, not realistic
@@ -68,8 +68,8 @@ def generate_sensor_data():
     pm10 += (PM10_BASELINE - pm10) * DECAY_RATE
 
     # upper and lower bounds to keep values from going into unrealistic ranges
-    pm25 = max(5, min(pm25, 250))
-    pm10 = max(pm25 * 1.3, min(pm10, 450))  # prevent PM10 from being less than PM2.5
+    pm25 = max(5, min(pm25, 180))
+    pm10 = max(pm25 * 1.3, min(pm10, 250))  # prevent PM10 from being less than PM2.5
     temperature = max(5, min(temperature, 35))
     humidity = max(20, min(humidity, 90))
 
@@ -103,6 +103,7 @@ def send_to_thingsboard(data):
 
 # main loop here
 if __name__ == "__main__":
+    random.seed(42)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",  # time, log level, message
