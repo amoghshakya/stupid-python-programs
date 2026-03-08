@@ -1,0 +1,10 @@
+[project]
+name = "asciipy"
+version = "0.1.0"
+description = "Convert images to ASCII art"
+readme = "README.md"
+authors = [
+  { name = "Amogh Shakya" },
+]
+requires-python = ">=3.13"
+dependencies = ["Pillow"]
