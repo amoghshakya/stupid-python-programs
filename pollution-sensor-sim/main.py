@@ -20,7 +20,7 @@ if not env_exists:
 access_token = os.getenv("THINGSBOARD_ACCESS_TOKEN")
 API_URL = f"http://eu.thingsboard.cloud/api/v1/{access_token}/telemetry"
 
-SEND_INTERVAL = 5  # seconds between telemetry
+SEND_INTERVAL = 1  # seconds between telemetry
 
 # initialize local db if not exists
 db = SensorBuffer()
@@ -35,6 +35,40 @@ temperature = random.uniform(15, 25)
 humidity = random.uniform(40, 70)
 co2 = random.uniform(400, 800)
 no2 = random.uniform(10, 50)
+
+
+def calculate_aqi_pm25(cp: float) -> tuple:
+    if 0 <= cp <= 12:
+        BP_lo, BP_hi = 0, 12
+        I_lo, I_hi = 0, 50
+        category = "GOOD"
+
+    elif cp <= 35.4:
+        BP_lo, BP_hi = 12.1, 35.4
+        I_lo, I_hi = 51, 100
+        category = "MODERATE"
+
+    elif cp <= 55.4:
+        BP_lo, BP_hi = 35.5, 55.4
+        I_lo, I_hi = 101, 150
+        category = "UNHEALTHY_SENSITIVE"
+
+    elif cp <= 150.4:
+        BP_lo, BP_hi = 55.5, 150.4
+        I_lo, I_hi = 151, 200
+        category = "UNHEALTHY"
+
+    elif cp <= 250.4:
+        BP_lo, BP_hi = 150.5, 250.4
+        I_lo, I_hi = 201, 300
+        category = "VERY_UNHEALTHY"
+
+    else:
+        BP_lo, BP_hi = 250.5, 500.4
+        I_lo, I_hi = 301, 500
+        category = "HAZARDOUS"
+    aqi = ((I_hi - I_lo) / (BP_hi - BP_lo)) * (cp - BP_lo) + I_lo
+    return round(aqi), category
 
 
 def generate_sensor_data():
@@ -66,8 +100,8 @@ def generate_sensor_data():
         no2 += random.randint(10, 20)
 
     # spike bhayepachi decay garaudai lyaune
-    PM25_BASELINE = 80
-    PM10_BASELINE = 150
+    PM25_BASELINE = 70
+    PM10_BASELINE = 120
     CO2_BASELINE = 600
     NO2_BASELINE = 30
     DECAY_RATE = 0.05
@@ -79,19 +113,33 @@ def generate_sensor_data():
     no2 += (NO2_BASELINE - no2) * DECAY_RATE
 
     # upper and lower bounds to keep values from going into unrealistic ranges
-    pm25 = max(5, min(pm25, 180))
+    pm25 = max(5, min(pm25, 150))
     pm10 = max(pm25 * 1.3, min(pm10, 250))  # prevent PM10 from being less than PM2.5
     temperature = max(5, min(temperature, 35))
     humidity = max(20, min(humidity, 90))
 
+    aqi, air_status = calculate_aqi_pm25(pm25)
+    alarm = "ON" if aqi > 150 else "OFF"
+
+    # "temperature": round(temperature, 2),
+    # "humidity": round(humidity, 2),
+    # "NO2": round(NO2, 2),
+    # "pm25": round(pm25, 2),
+    # "pm10": round(pm10, 2),
+    # "AQI": aqi,
+    # "airQualityStatus": air_status,
+    # "alarm": alarm
+
     return {
-        "pm25": round(pm25, 2),
-        "pm10": round(pm10, 2),
         "temperature": round(temperature, 2),
         "humidity": round(humidity, 2),
+        "NO2": round(no2, 2),
+        "pm25": round(pm25, 2),
+        "pm10": round(pm10, 2),
         "co2": round(co2, 2),
-        "no2": round(no2, 2),
-        "ts": int(time.time() * 1000),
+        "AQI": aqi,
+        "airQualityStatus": air_status,
+        "alarm": alarm,
     }
 
 
